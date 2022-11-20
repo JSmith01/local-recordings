@@ -13,7 +13,7 @@ type GridParams = TileParams & {
     xLast: number,
 };
 
-function getGridParams(w: number, h: number, gap: number, tilesCount: number, tileAR: number) {
+export function getGridParams(w: number, h: number, gap: number, tilesCount: number, tileAR: number) {
     let rows = 1;
     let cols = tilesCount;
     let optimalArea = 0;
@@ -39,9 +39,9 @@ function getGridParams(w: number, h: number, gap: number, tilesCount: number, ti
 
     return {
         ...optimal,
-        x: Math.floor((w - optimal.cols * (optimal.width + gap) - gap) / 2),
-        xLast: Math.floor((w - lastRowSize * (optimal.width + gap) - gap) / 2),
-        y: Math.floor((h - optimal.rows * (optimal.height + gap) - gap) / 2),
+        x: Math.floor((w - (optimal.cols * (optimal.width + gap) - gap)) / 2),
+        xLast: Math.floor((w - (lastRowSize * (optimal.width + gap) - gap)) / 2),
+        y: Math.floor((h - (optimal.rows * (optimal.height + gap) - gap)) / 2),
     } as GridParams;
 }
 
@@ -73,9 +73,9 @@ export default class TilesLayout implements TilesLayoutInterface {
     }
 
     getTileCoords(n: number): TileParams {
-        const {rows, width, height, x: xOff, xLast, y: yOff} = this.#calcCache.get(this.#tilesCount) as GridParams;
-        const row = Math.floor(n / rows);
-        const col = n % rows;
+        const {rows, cols, width, height, x: xOff, xLast, y: yOff} = this.#calcCache.get(this.#tilesCount) as GridParams;
+        const row = Math.floor(n / cols);
+        const col = n - row * cols;
         const x = (row === (rows - 1) ? xLast : xOff) + col * (width + this.#gap);
         const y = yOff + row * (height + this.#gap);
 
