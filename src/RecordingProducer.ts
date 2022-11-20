@@ -1,3 +1,5 @@
+import TilesLayout from './TilesLayout';
+
 type RecordingTile = {
     title: string,
     placeholder?: CanvasImageSource,
@@ -15,7 +17,6 @@ export type RecordingProducerOptions = {
     titleBg: string,
     highlightWidth: number,
     tileGap: number,
-    padding: number;
     bigTileGap: number,
 };
 
@@ -31,7 +32,6 @@ const DEFAULT_RECORDING_OPTIONS: RecordingProducerOptions = {
     titleBg: '#d0d0d0',
     highlightWidth: 3,
     tileGap: 4,
-    padding: 0,
     bigTileGap: 4,
 };
 
@@ -56,6 +56,8 @@ export default class RecordingProducer implements RecordingProducerInterface {
     #highlightId?: string;
     #bigId?: string;
     #orderedIds: string[] = [];
+    #layoutManager: TilesLayout;
+    #layoutManagerWithMain: TilesLayout;
 
     constructor(options?: Partial<RecordingProducerOptions>) {
         const opts = { ...DEFAULT_RECORDING_OPTIONS, ...options };
@@ -68,6 +70,12 @@ export default class RecordingProducer implements RecordingProducerInterface {
         this.#ctx = ctx;
         this.#outputStream = this.#canvas.captureStream(opts.frameRate);
         this.#redraw();
+        this.#layoutManager = new TilesLayout(opts.width, opts.height, opts.tileGap);
+        this.#layoutManagerWithMain = new TilesLayout(
+            Math.floor(opts.width * (1 - opts.bigTileShare) - opts.bigTileGap),
+            opts.height,
+            opts.tileGap
+        );
     }
 
     get outputStream() {
