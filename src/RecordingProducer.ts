@@ -1,16 +1,16 @@
-import TilesLayout from './TilesLayout';
+import TilesLayout, { TilesLayoutInterface } from './TilesLayout';
+import TilePainter, { TilePainterInterface, TileStyle } from './TilePainter';
 
 type RecordingTile = {
     title: string,
     placeholder?: CanvasImageSource,
+    painter: TilePainterInterface,
 };
 
 export type RecordingProducerOptions = {
     width: number,
     height: number,
     frameRate: number,
-    maxTiles: number,
-    maxTilesWithBig: number,
     bigTileShare: number,
     titleFont: string,
     titleFontColor: string,
@@ -24,8 +24,6 @@ const DEFAULT_RECORDING_OPTIONS: RecordingProducerOptions = {
     width: 1280,
     height: 720,
     frameRate: 30,
-    maxTiles: 4,
-    maxTilesWithBig: 4,
     bigTileShare: 0.75,
     titleFont: '10px sans-serif',
     titleFontColor: '#000',
@@ -39,7 +37,8 @@ export interface RecordingProducerInterface {
     readonly outputStream: MediaStream;
     addTile(id: string, title: string, placeholder?: CanvasImageSource, stream?: MediaStream, isBig?: boolean): void;
     removeTile(id: string): void;
-    setOrder(ids: string[], highlightId?: string): void;
+    setOrder(ids: string[]): void;
+    setHighLight(id?: string): void;
     addStream(id: string, stream: MediaStream): void;
     removeStream(id: string): void;
     stop(): void;
@@ -56,8 +55,10 @@ export default class RecordingProducer implements RecordingProducerInterface {
     #highlightId?: string;
     #bigId?: string;
     #orderedIds: string[] = [];
-    #layoutManager: TilesLayout;
-    #layoutManagerWithMain: TilesLayout;
+    #layoutManager: TilesLayoutInterface;
+    #layoutManagerWithBig: TilesLayoutInterface;
+    #bigLayoutOffset: number;
+    #tileStyle: TileStyle;
 
     constructor(options?: Partial<RecordingProducerOptions>) {
         const opts = { ...DEFAULT_RECORDING_OPTIONS, ...options };
@@ -69,13 +70,21 @@ export default class RecordingProducer implements RecordingProducerInterface {
         if (!ctx) throw new Error('cannot construct canvas 2d context');
         this.#ctx = ctx;
         this.#outputStream = this.#canvas.captureStream(opts.frameRate);
-        this.#redraw();
         this.#layoutManager = new TilesLayout(opts.width, opts.height, opts.tileGap);
-        this.#layoutManagerWithMain = new TilesLayout(
+        this.#layoutManagerWithBig = new TilesLayout(
             Math.floor(opts.width * (1 - opts.bigTileShare) - opts.bigTileGap),
             opts.height,
             opts.tileGap
         );
+        this.#bigLayoutOffset = Math.floor(opts.bigTileShare * opts.width) + opts.bigTileGap;
+        this.#tileStyle = {
+            titleBg: opts.titleBg,
+            titleFont: opts.titleFont,
+            titleFontColor: opts.titleFontColor,
+            highlightWidth: opts.highlightWidth,
+        }
+
+        this.#update();
     }
 
     get outputStream() {
@@ -83,7 +92,8 @@ export default class RecordingProducer implements RecordingProducerInterface {
     }
 
     addTile(id: string, title: string, placeholder?: CanvasImageSource, stream?: MediaStream, isBig = false) {
-        this.#tiles.set(id, {title, placeholder});
+        const painter = new TilePainter(this.#ctx, title, placeholder, this.#tileStyle);
+        this.#tiles.set(id, { title, placeholder, painter });
 
         if (isBig) {
             this.#bigId = id;
@@ -92,7 +102,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
         if (stream) {
             this.addStream(id, stream);
         } else {
-            this.#redraw();
+            this.#update();
         }
     }
 
@@ -115,20 +125,33 @@ export default class RecordingProducer implements RecordingProducerInterface {
         this.removeStream(id);
     }
 
-    setOrder(ids: string[], highlightId?: string) {
-        this.#orderedIds = ids;
-        this.#highlightId = highlightId;
-        this.#redraw();
+    setOrder(ids: string[]) {
+        this.#orderedIds = ids.filter(id => this.#tiles.has(id));
+        this.#update();
+    }
+
+    setHighLight(id?: string) {
+        if (this.#highlightId) {
+            this.#tiles.get(this.#highlightId)!.painter.setHighlight(false);
+        }
+        if (!id) return;
+
+        const highlightedTile = this.#tiles.get(id);
+        if (!highlightedTile) return;
+        this.#highlightId = id;
+        highlightedTile.painter.setHighlight(true);
     }
 
     addStream(id: string, stream: MediaStream) {
         this.#streams.set(id, stream);
-        this.#redraw();
+        this.#tiles.get(id)?.painter.setStream(stream);
+        this.#update();
     }
 
     removeStream(id: string) {
         this.#streams.delete(id);
-        this.#redraw();
+        this.#tiles.get(id)?.painter.setStream();
+        this.#update();
     }
 
     stop() {
@@ -136,7 +159,34 @@ export default class RecordingProducer implements RecordingProducerInterface {
         this.#stopped = true;
     }
 
-    #redraw() {
+    #update() {
+        const hasBigLayout = this.#bigId && this.#tiles.size > 1;
+        const layoutManager = hasBigLayout ? this.#layoutManagerWithBig : this.#layoutManager;
+        layoutManager.setTilesCount(this.#tiles.size - (hasBigLayout ? 1 : 0));
+        let i = 0;
+        this.#orderedIds.forEach(id => {
+            const isBig = id === this.#bigId;
+            const tile = this.#tiles.get(id);
+            if (!tile) return;
 
+            tile.painter.setHighlight(id === this.#highlightId);
+
+            const coords = isBig ? {
+                    x: 0,
+                    y: 0,
+                    height: this.#opts.height,
+                    width: Math.floor(this.#opts.width * (hasBigLayout ? this.#opts.bigTileShare : 1))
+                } : layoutManager.getTileCoords(i);
+
+            if (!isBig && hasBigLayout) {
+                coords.x += this.#bigLayoutOffset;
+            }
+
+            tile.painter.setCoords(coords);
+
+            if (!isBig) {
+                i++;
+            }
+        });
     }
 }

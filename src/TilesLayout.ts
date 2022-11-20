@@ -1,6 +1,6 @@
 const DEFAULT_TILE_AR = 16 / 9;
 
-type TileParams = {
+export type TileParams = {
     x: number,
     y: number,
     width: number,
@@ -45,7 +45,13 @@ function getGridParams(w: number, h: number, gap: number, tilesCount: number, ti
     } as GridParams;
 }
 
-export default class TilesLayout {
+export interface TilesLayoutInterface {
+    setTilesCount(count: number): void;
+
+    getTileCoords(n: number): TileParams;
+}
+
+export default class TilesLayout implements TilesLayoutInterface {
     #width: number;
     #height: number;
     #gap: number;
@@ -67,13 +73,13 @@ export default class TilesLayout {
     }
 
     getTileCoords(n: number): TileParams {
-        const { rows, width, height, x: xOff, xLast, y: yOff } = this.#calcCache.get(this.#tilesCount) as GridParams;
+        const {rows, width, height, x: xOff, xLast, y: yOff} = this.#calcCache.get(this.#tilesCount) as GridParams;
         const row = Math.floor(n / rows);
         const col = n % rows;
-        const x = (row === (rows - 1) ? xLast : xOff)  + col * (width + this.#gap);
+        const x = (row === (rows - 1) ? xLast : xOff) + col * (width + this.#gap);
         const y = yOff + row * (height + this.#gap);
 
-        return { x, y, width, height };
+        return {x, y, width, height};
     }
 
     #recalculate() {
