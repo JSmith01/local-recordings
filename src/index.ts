@@ -1,4 +1,5 @@
 import RecordingProducer from './RecordingProducer';
+import { loadImage } from './utils';
 
 const btnCapture = document.getElementById('capture') as HTMLButtonElement;
 const btnRecord = document.getElementById('record') as HTMLButtonElement;
@@ -56,7 +57,11 @@ btnRecord.onclick = async () => {
 };
 
 
+const rp = new RecordingProducer();
 // @ts-ignore
-window.rp = new RecordingProducer();
-// @ts-ignore
-document.body.append(window.rp._canvas);
+window.rp = rp;
+document.body.append(rp._canvas);
+rp.addTile('a', 'Test tile', loadImage('http://placebeard.it/640/480'));
+rp.setOrder(['a']);
+// since DEFAULT_PLACEHOLDER init is async too
+setTimeout(() => rp.draw(), 10);
