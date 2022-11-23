@@ -4,10 +4,18 @@
     <meta charset="UTF-8">
     <title>Test recordings</title>
     <style>
+        body {
+            padding: 5px;
+            margin: 0;
+        }
         #preview {
-            width: 640px;
-            height: 480px;
+            max-width: 640px;
+            max-height: 480px;
             border: 1px solid gray;
+        }
+        canvas {
+            margin-top: 10px;
+            border: 1px solid black;
         }
     </style>
 </head>
@@ -17,6 +25,7 @@
     <button id="capture">capture</button>
     <button id="record">record</button>
     <button id="stop">stop</button>
+    <label><input type="checkbox" id="hd-check">HD</label>
 </nav>
 
 <script src="dist/web.js"></script>

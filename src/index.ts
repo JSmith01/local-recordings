@@ -3,6 +3,7 @@ import RecordingProducer from './RecordingProducer';
 const btnCapture = document.getElementById('capture') as HTMLButtonElement;
 const btnRecord = document.getElementById('record') as HTMLButtonElement;
 const btnStop = document.getElementById('stop') as HTMLButtonElement;
+const chkHd = document.getElementById('hd-check') as HTMLInputElement;
 const videoPreview = document.getElementById('preview') as HTMLVideoElement;
 
 let recorder: MediaRecorder | undefined;
@@ -10,7 +11,8 @@ let recorder: MediaRecorder | undefined;
 btnCapture.onclick = () => {
     if (videoPreview.srcObject) return;
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+    const video = chkHd.checked ? { width: 1280, height: 720 } : true;
+    navigator.mediaDevices.getUserMedia({ video, audio: true }).then(stream => {
         videoPreview.srcObject = stream;
     });
 };
