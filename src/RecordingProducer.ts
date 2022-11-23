@@ -72,12 +72,8 @@ export default class RecordingProducer implements RecordingProducerInterface {
     }
 
     get #activeIds() {
-        if (this.#orderedIds.length > 0) {
-            return this.#bigId && !this.#orderedIds.includes(this.#bigId)
+        return this.#bigId && !this.#orderedIds.includes(this.#bigId)
                 ? [this.#bigId, ...this.#orderedIds] : this.#orderedIds;
-        } else {
-            return Array.from(this.#tiles.keys());
-        }
     }
 
     draw(): void {
