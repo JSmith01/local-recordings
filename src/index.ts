@@ -1,3 +1,5 @@
+import RecordingProducer from './RecordingProducer';
+
 const btnCapture = document.getElementById('capture') as HTMLButtonElement;
 const btnRecord = document.getElementById('record') as HTMLButtonElement;
 const btnStop = document.getElementById('stop') as HTMLButtonElement;
@@ -50,3 +52,9 @@ btnRecord.onclick = async () => {
     recorder.onstop = () => outputStream.close();
     recorder.start();
 };
+
+
+// @ts-ignore
+window.rp = new RecordingProducer();
+// @ts-ignore
+document.body.append(window.rp._canvas);

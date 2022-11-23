@@ -1,37 +1,23 @@
 import TilesLayout, { TilesLayoutInterface } from './TilesLayout';
-import TilePainter, { TilePainterInterface, TileStyle } from './TilePainter';
+import TilePainter, { PlaceholderType, TilePainterInterface, TileStyle } from './TilePainter';
+import { omit } from './utils';
 
 type RecordingTile = {
     title: string,
-    placeholder?: CanvasImageSource,
+    placeholder?: PlaceholderType,
     painter: TilePainterInterface,
 };
 
-export type RecordingProducerOptions = {
-    width: number,
-    height: number,
-    frameRate: number,
-    bigTileShare: number,
-    titleFont: string,
-    titleFontColor: string,
-    titleBg: string,
-    highlightWidth: number,
-    tileGap: number,
-    bigTileGap: number,
-};
-
-const DEFAULT_RECORDING_OPTIONS: RecordingProducerOptions = {
+const DEFAULT_RECORDING_OPTIONS = {
     width: 1280,
     height: 720,
     frameRate: 30,
     bigTileShare: 0.75,
-    titleFont: '10px sans-serif',
-    titleFontColor: '#000',
-    titleBg: '#d0d0d0',
-    highlightWidth: 3,
     tileGap: 4,
     bigTileGap: 4,
 };
+
+export type RecordingProducerOptions = typeof DEFAULT_RECORDING_OPTIONS & Partial<TileStyle>;
 
 export interface RecordingProducerInterface {
     readonly outputStream: MediaStream;
@@ -41,6 +27,7 @@ export interface RecordingProducerInterface {
     setHighLight(id?: string): void;
     addStream(id: string, stream: MediaStream): void;
     removeStream(id: string): void;
+    draw(): void;
     stop(): void;
 }
 
@@ -58,7 +45,6 @@ export default class RecordingProducer implements RecordingProducerInterface {
     #layoutManager: TilesLayoutInterface;
     #layoutManagerWithBig: TilesLayoutInterface;
     #bigLayoutOffset: number;
-    #tileStyle: TileStyle;
 
     constructor(options?: Partial<RecordingProducerOptions>) {
         const opts = { ...DEFAULT_RECORDING_OPTIONS, ...options };
@@ -77,22 +63,34 @@ export default class RecordingProducer implements RecordingProducerInterface {
             opts.tileGap
         );
         this.#bigLayoutOffset = Math.floor(opts.bigTileShare * opts.width) + opts.bigTileGap;
-        this.#tileStyle = {
-            titleBg: opts.titleBg,
-            titleFont: opts.titleFont,
-            titleFontColor: opts.titleFontColor,
-            highlightWidth: opts.highlightWidth,
-        }
 
         this.#update();
+    }
+
+    get _canvas() {
+        return this.#canvas;
+    }
+
+    get #activeIds() {
+        if (this.#orderedIds.length > 0) {
+            return this.#bigId && !this.#orderedIds.includes(this.#bigId)
+                ? [this.#bigId, ...this.#orderedIds] : this.#orderedIds;
+        } else {
+            return Array.from(this.#tiles.keys());
+        }
+    }
+
+    draw(): void {
+        this.#ctx.clearRect(0, 0, this.#opts.width, this.#opts.height);
+        this.#activeIds.forEach(id => this.#tiles.get(id).painter.draw());
     }
 
     get outputStream() {
         return this.#outputStream;
     }
 
-    addTile(id: string, title: string, placeholder?: CanvasImageSource, stream?: MediaStream, isBig = false) {
-        const painter = new TilePainter(this.#ctx, title, placeholder, this.#tileStyle);
+    addTile(id: string, title: string, placeholder?: PlaceholderType, stream?: MediaStream, isBig = false) {
+        const painter = new TilePainter(this.#ctx, title, placeholder, omit(Object.keys(DEFAULT_RECORDING_OPTIONS), this.#opts));
         this.#tiles.set(id, { title, placeholder, painter });
 
         if (isBig) {
@@ -164,7 +162,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
         const layoutManager = hasBigLayout ? this.#layoutManagerWithBig : this.#layoutManager;
         layoutManager.setTilesCount(this.#tiles.size - (hasBigLayout ? 1 : 0));
         let i = 0;
-        this.#orderedIds.forEach(id => {
+        this.#activeIds.forEach(id => {
             const isBig = id === this.#bigId;
             const tile = this.#tiles.get(id);
             if (!tile) return;
