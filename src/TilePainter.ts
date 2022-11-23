@@ -75,9 +75,10 @@ export default class TilePainter implements TilePainterInterface {
             const size = Math.min(width / 2, height / 2);
             const sourceSize = Math.min(this.#placeholder.width as number, this.#placeholder.height as number);
 
-            this.#ctx.save();
-            this.#ctx.arc(x + width / 2,y + height / 2, size / 2, 0, Math.PI*2,true);
-            this.#ctx.clip();
+            // TODO reimplement, very glitchy
+            // this.#ctx.save();
+            // this.#ctx.arc(x + width / 2,y + height / 2, size / 2, 0, Math.PI*2,true);
+            // this.#ctx.clip();
             this.#ctx.drawImage(
                 this.#placeholder,
                 ((this.#placeholder.width as number) - sourceSize) / 2,
@@ -89,7 +90,7 @@ export default class TilePainter implements TilePainterInterface {
                 size,
                 size
             );
-            this.#ctx.restore();
+            // this.#ctx.restore();
         }
 
         // title background
