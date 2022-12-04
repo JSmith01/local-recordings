@@ -16,8 +16,10 @@ export default class AudioMixer implements AudioMixerInterface {
         return this.#outputNode.stream.getAudioTracks()[0];
     }
 
-    resume() {
-        return this.#context.resume();
+    async resume() {
+        if (this.#context.state === 'suspended') {
+            return this.#context.resume();
+        }
     }
 
     addStream(stream: MediaStream) {

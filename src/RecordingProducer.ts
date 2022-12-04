@@ -9,6 +9,8 @@ type RecordingTile = {
     painter: TilePainterInterface,
 };
 
+export type { PlaceholderType };
+
 const DEFAULT_RECORDING_OPTIONS = {
     width: 1280,
     height: 720,
@@ -16,6 +18,7 @@ const DEFAULT_RECORDING_OPTIONS = {
     bigTileShare: 0.75,
     tileGap: 4,
     bigTileGap: 4,
+    bg: '#FFF',
 };
 
 export type RecordingProducerOptions = typeof DEFAULT_RECORDING_OPTIONS & Partial<TileStyle>;
@@ -23,7 +26,8 @@ export type RecordingProducerOptions = typeof DEFAULT_RECORDING_OPTIONS & Partia
 export interface RecordingProducerInterface {
     readonly outputStream: MediaStream;
     readonly isStopped: boolean;
-    addTile(id: string, title: string, placeholder?: CanvasImageSource, stream?: MediaStream, isBig?: boolean): void;
+    readonly _canvas: HTMLCanvasElement | OffscreenCanvas;
+    addTile(id: string, title: string, placeholder?: PlaceholderType, stream?: MediaStream, isBig?: boolean): void;
     removeTile(id: string): void;
     setOrder(ids: string[]): void;
     setHighLight(id?: string): void;
@@ -85,7 +89,8 @@ export default class RecordingProducer implements RecordingProducerInterface {
     }
 
     draw(): void {
-        this.#ctx.clearRect(0, 0, this.#opts.width, this.#opts.height);
+        this.#ctx.fillStyle = this.#opts.bg;
+        this.#ctx.fillRect(0, 0, this.#opts.width, this.#opts.height);
         this.#activeIds.forEach(id => this.#tiles.get(id).painter.draw());
     }
 
@@ -129,6 +134,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
         }
 
         this.removeStream(id);
+        this.#update();
     }
 
     setOrder(ids: string[]) {
@@ -185,6 +191,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
 
     start() {
         if (this.#stopped) return;
+
         this.#updateCanvas();
     }
 
@@ -198,6 +205,11 @@ export default class RecordingProducer implements RecordingProducerInterface {
         this.#audioMixer.shutdown();
         this.#outputStream?.getTracks().forEach(track => track.stop());
         this.#stopped = true;
+        this.#streams.clear();
+        this.#tiles.clear();
+        this.#orderedIds.length = 0;
+        this.#bigId = undefined;
+        this.#highlightId = undefined;
     }
 
     resumeAudio() {

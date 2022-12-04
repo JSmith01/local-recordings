@@ -1,13 +1,12 @@
-import RecordingProducer from './RecordingProducer';
 import { loadImage, makeImageCircled } from './utils';
+import RecordingFacade from './RecordingFacade';
 
 const btnCapture = document.getElementById('capture') as HTMLButtonElement;
 const btnRecord = document.getElementById('record') as HTMLButtonElement;
 const btnStop = document.getElementById('stop') as HTMLButtonElement;
 const chkHd = document.getElementById('hd-check') as HTMLInputElement;
 const videoPreview = document.getElementById('preview') as HTMLVideoElement;
-
-let recorder: MediaRecorder | undefined;
+const recPreview = document.getElementById('rec-preview') as HTMLVideoElement;
 
 btnCapture.onclick = () => {
     if (videoPreview.srcObject) return;
@@ -15,18 +14,19 @@ btnCapture.onclick = () => {
     const video = chkHd.checked ? { width: 1280, height: 720 } : true;
     navigator.mediaDevices.getUserMedia({ video, audio: true }).then(stream => {
         videoPreview.srcObject = stream;
+        rp.addStream('a', stream);
     });
 };
 
-btnStop.onclick = () => {
+btnStop.onclick = async () => {
     if (videoPreview.srcObject) {
         (videoPreview.srcObject as MediaStream).getTracks().forEach(track => track.stop());
         videoPreview.srcObject = null;
     }
-    if (recorder) {
-        recorder.stop();
-        recorder = undefined;
-    }
+
+    console.log('Stopping video recording');
+    await rp.stop();
+    console.log('Video recording stopped');
 };
 
 btnRecord.onclick = async () => {
@@ -44,24 +44,22 @@ btnRecord.onclick = async () => {
     const outputStream = await newHandle.createWritable();
     if (!outputStream) return;
 
-    recorder = new MediaRecorder(
-        videoPreview.srcObject as MediaStream,
-        {
-            videoBitsPerSecond: 2_500_000,
-            audioBitsPerSecond: 128_000,
-        }
-    );
-    recorder.ondataavailable = e => outputStream.write(e.data);
-    recorder.onstop = () => outputStream.close();
-    recorder.start();
+    rp.setWriter(outputStream);
+    rp.start();
 };
 
-const rp = new RecordingProducer({ width: 720, height: 405, frameRate: 30 });
+const rp = new RecordingFacade({
+    producer: { width: 720, height: 405, frameRate: 30 },
+    recorder: {
+        videoBitsPerSecond: 2_500_000,
+        audioBitsPerSecond: 128_000,
+    },
+});
 
 (window as unknown as Record<string, unknown>).rp = rp;
-document.body.append(rp._canvas as HTMLCanvasElement);
+recPreview.srcObject = rp.outputStream;
 
-const placeholder = loadImage('http://placebeard.it/640/480').then(makeImageCircled);
+const placeholder = loadImage('./placeholder.webp').then(makeImageCircled);
 rp.addTile('a', 'Test tile', placeholder);
 
 // since DEFAULT_PLACEHOLDER init is async too
