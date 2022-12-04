@@ -1,5 +1,5 @@
 import RecordingProducer from './RecordingProducer';
-import { loadImage } from './utils';
+import { loadImage, makeImageCircled } from './utils';
 
 const btnCapture = document.getElementById('capture') as HTMLButtonElement;
 const btnRecord = document.getElementById('record') as HTMLButtonElement;
@@ -56,12 +56,14 @@ btnRecord.onclick = async () => {
     recorder.start();
 };
 
+const rp = new RecordingProducer({ width: 720, height: 405, frameRate: 30 });
 
-const rp = new RecordingProducer();
-// @ts-ignore
-window.rp = rp;
+(window as unknown as Record<string, unknown>).rp = rp;
 document.body.append(rp._canvas);
-rp.addTile('a', 'Test tile', loadImage('http://placebeard.it/640/480'));
-rp.setOrder(['a']);
+
+const placeholder = loadImage('http://placebeard.it/640/480').then(makeImageCircled);
+rp.addTile('a', 'Test tile', placeholder);
+
 // since DEFAULT_PLACEHOLDER init is async too
 setTimeout(() => rp.draw(), 10);
+placeholder.then(() => rp.draw());

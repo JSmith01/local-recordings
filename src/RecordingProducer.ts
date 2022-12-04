@@ -21,6 +21,7 @@ export type RecordingProducerOptions = typeof DEFAULT_RECORDING_OPTIONS & Partia
 
 export interface RecordingProducerInterface {
     readonly outputStream: MediaStream;
+    readonly isStopped: boolean;
     addTile(id: string, title: string, placeholder?: CanvasImageSource, stream?: MediaStream, isBig?: boolean): void;
     removeTile(id: string): void;
     setOrder(ids: string[]): void;
@@ -28,6 +29,7 @@ export interface RecordingProducerInterface {
     addStream(id: string, stream: MediaStream): void;
     removeStream(id: string): void;
     draw(): void;
+    start(): void;
     stop(): void;
 }
 
@@ -45,6 +47,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
     #layoutManager: TilesLayoutInterface;
     #layoutManagerWithBig: TilesLayoutInterface;
     #bigLayoutOffset: number;
+    #updateTimer?: number;
 
     constructor(options?: Partial<RecordingProducerOptions>) {
         const opts = { ...DEFAULT_RECORDING_OPTIONS, ...options };
@@ -91,6 +94,10 @@ export default class RecordingProducer implements RecordingProducerInterface {
 
         if (isBig) {
             this.#bigId = id;
+        }
+
+        if (!this.#orderedIds.includes(id)) {
+            this.#orderedIds.push(id);
         }
 
         if (stream) {
@@ -148,9 +155,33 @@ export default class RecordingProducer implements RecordingProducerInterface {
         this.#update();
     }
 
+    #updateCanvas() {
+        this.draw();
+        // TODO could be improved considering actual interval between frames
+        const delay = Math.round(1000 / this.#opts.frameRate);
+
+        // TODO needs to use worker timer
+        this.#updateTimer = window.setTimeout(() => this.#updateCanvas(), delay);
+    }
+
+    start() {
+        if (this.#stopped) return;
+        this.#updateCanvas();
+    }
+
     stop() {
-        this.#outputStream.getTracks().forEach(track => track.stop());
+        if (this.#stopped) return;
+
+        if (this.#updateTimer) {
+            clearTimeout(this.#updateTimer);
+            this.#updateTimer = undefined;
+        }
+        this.#outputStream?.getTracks().forEach(track => track.stop());
         this.#stopped = true;
+    }
+
+    get isStopped() {
+        return this.#stopped;
     }
 
     #update() {

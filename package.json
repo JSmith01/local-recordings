@@ -15,6 +15,7 @@
     "@swc/jest": "^0.2.23",
     "@types/dom-mediacapture-record": "^1.0.13",
     "@types/dom-webcodecs": "^0.1.5",
+    "@types/offscreencanvas": "^2019.7.0",
     "@types/jest": "^29.2.3",
     "@types/webrtc": "^0.0.33",
     "@types/wicg-file-system-access": "^2020.9.5",
