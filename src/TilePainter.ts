@@ -25,7 +25,7 @@ const DEFAULT_STYLE = {
 export type TileStyle = typeof DEFAULT_STYLE;
 
 export default class TilePainter implements TilePainterInterface {
-    #ctx: CanvasRenderingContext2D;
+    #ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
     #title: string;
     #placeholder: CanvasImageSource;
     #style: TileStyle;
@@ -35,7 +35,12 @@ export default class TilePainter implements TilePainterInterface {
     #playback?: HTMLVideoElement;
     #ownPlayback = true;
 
-    constructor(ctx: CanvasRenderingContext2D, title: string, placeholder?: PlaceholderType, style?: Partial<TileStyle>) {
+    constructor(
+        ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+        title: string,
+        placeholder?: PlaceholderType,
+        style?: Partial<TileStyle>
+    ) {
         this.#ctx = ctx;
         this.#title = title;
         this.#style = { ...DEFAULT_STYLE, ...style };

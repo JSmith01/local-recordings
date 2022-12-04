@@ -1,6 +1,7 @@
 import TilesLayout, { TilesLayoutInterface } from './TilesLayout';
 import TilePainter, { PlaceholderType, TilePainterInterface, TileStyle } from './TilePainter';
 import { omit } from './utils';
+import AudioMixer, { AudioMixerInterface } from './AudioMixer';
 
 type RecordingTile = {
     title: string,
@@ -29,6 +30,7 @@ export interface RecordingProducerInterface {
     addStream(id: string, stream: MediaStream): void;
     removeStream(id: string): void;
     draw(): void;
+    resumeAudio(): Promise<void>;
     start(): void;
     stop(): void;
 }
@@ -36,8 +38,8 @@ export interface RecordingProducerInterface {
 export default class RecordingProducer implements RecordingProducerInterface {
     #stopped = false;
     #opts: RecordingProducerOptions;
-    #canvas: HTMLCanvasElement;
-    #ctx: CanvasRenderingContext2D;
+    #canvas: HTMLCanvasElement | OffscreenCanvas;
+    #ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
     #outputStream: MediaStream;
     #streams = new Map<string, MediaStream>();
     #tiles = new Map<string, RecordingTile>();
@@ -48,6 +50,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
     #layoutManagerWithBig: TilesLayoutInterface;
     #bigLayoutOffset: number;
     #updateTimer?: number;
+    #audioMixer: AudioMixerInterface;
 
     constructor(options?: Partial<RecordingProducerOptions>) {
         const opts = { ...DEFAULT_RECORDING_OPTIONS, ...options };
@@ -66,6 +69,8 @@ export default class RecordingProducer implements RecordingProducerInterface {
             opts.tileGap
         );
         this.#bigLayoutOffset = Math.floor(opts.bigTileShare * opts.width) + opts.bigTileGap;
+        this.#audioMixer = new AudioMixer();
+        this.#outputStream.addTrack(this.#audioMixer.outputTrack);
 
         this.#update();
     }
@@ -145,14 +150,28 @@ export default class RecordingProducer implements RecordingProducerInterface {
 
     addStream(id: string, stream: MediaStream) {
         this.#streams.set(id, stream);
-        this.#tiles.get(id)?.painter.setStream(stream);
-        this.#update();
+        this.#audioMixer.addStream(stream);
+        const tile = this.#tiles.get(id);
+        if (tile) {
+            tile.painter.setStream(stream);
+            this.#update();
+        }
     }
 
     removeStream(id: string) {
-        this.#streams.delete(id);
-        this.#tiles.get(id)?.painter.setStream();
-        this.#update();
+        const stream = this.#streams.get(id);
+        if (stream) {
+            this.#streams.delete(id);
+            const streams = Array.from(this.#streams.values());
+            if (!streams.includes(stream)) {
+                this.#audioMixer.removeStream(stream);
+            }
+        }
+        const tile = this.#tiles.get(id);
+        if (tile) {
+            tile.painter.setStream();
+            this.#update();
+        }
     }
 
     #updateCanvas() {
@@ -176,8 +195,13 @@ export default class RecordingProducer implements RecordingProducerInterface {
             clearTimeout(this.#updateTimer);
             this.#updateTimer = undefined;
         }
+        this.#audioMixer.shutdown();
         this.#outputStream?.getTracks().forEach(track => track.stop());
         this.#stopped = true;
+    }
+
+    resumeAudio() {
+        return this.#audioMixer.resume();
     }
 
     get isStopped() {

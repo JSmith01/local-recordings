@@ -59,7 +59,7 @@ btnRecord.onclick = async () => {
 const rp = new RecordingProducer({ width: 720, height: 405, frameRate: 30 });
 
 (window as unknown as Record<string, unknown>).rp = rp;
-document.body.append(rp._canvas);
+document.body.append(rp._canvas as HTMLCanvasElement);
 
 const placeholder = loadImage('http://placebeard.it/640/480').then(makeImageCircled);
 rp.addTile('a', 'Test tile', placeholder);
