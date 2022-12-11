@@ -17,6 +17,23 @@
             margin-top: 10px;
             border: 1px solid black;
         }
+        #parking {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 1%;
+            overflow: hidden;
+        }
+        #parking > * {
+            position: absolute;
+            top: 0;
+            right: 0;
+            opacity: 1%;
+            width: 1px;
+            height: 1px;
+        }
     </style>
 </head>
 <body>
@@ -29,6 +46,7 @@
     <button id="share">share</button>
 </nav>
 <video id="rec-preview" autoplay muted></video>
+<div id="parking"></div>
 
 <script src="dist/web.js"></script>
 </body>

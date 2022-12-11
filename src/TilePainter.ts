@@ -20,6 +20,7 @@ const DEFAULT_STYLE = {
     borderStyle: '#000',
     highlightStyle: '#0af1f1',
     tileBg: '#808080',
+    parkingId: '',
 };
 
 export type TileStyle = typeof DEFAULT_STYLE;
@@ -127,6 +128,9 @@ export default class TilePainter implements TilePainterInterface {
             if (this.#playback && this.#ownPlayback) {
                 this.#playback.pause();
                 this.#playback.srcObject = null;
+                if (this.#style.parkingId) {
+                    document.getElementById(this.#style.parkingId)?.removeChild(this.#playback);
+                }
             }
             this.#playback = undefined;
             return;
@@ -144,6 +148,9 @@ export default class TilePainter implements TilePainterInterface {
             this.#playback.autoplay = true;
             this.#playback.srcObject = stream;
             this.#ownPlayback = true;
+            if (this.#style.parkingId) {
+                document.getElementById(this.#style.parkingId)?.appendChild(this.#playback);
+            }
         }
     }
 }

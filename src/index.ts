@@ -10,7 +10,7 @@ const videoPreview = document.getElementById('preview') as HTMLVideoElement;
 const recPreview = document.getElementById('rec-preview') as HTMLVideoElement;
 
 const rp = new RecordingFacade({
-    producer: { width: 720, height: 405, frameRate: 30 },
+    producer: { width: 720, height: 405, frameRate: 30, parkingId: 'parking' },
     recorder: {
         videoBitsPerSecond: 2_500_000,
         audioBitsPerSecond: 128_000,
