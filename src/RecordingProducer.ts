@@ -1,8 +1,12 @@
 import TilesLayout, { TilesLayoutInterface } from './TilesLayout';
 import TilePainter, { PlaceholderType, TilePainterInterface, TileStyle } from './TilePainter';
 import { omit } from './utils';
+/*import { profileCb, profilingInit } from './utils';*/
 import AudioMixer, { AudioMixerInterface } from './AudioMixer';
 import { wSetTimeout } from './WorkerTimer';
+
+/*const PROFILING = false;
+const PROFILING_BUFFER_SIZE = 1000;*/
 
 type RecordingTile = {
     title: string,
@@ -182,16 +186,23 @@ export default class RecordingProducer implements RecordingProducerInterface {
     }
 
     #updateCanvas() {
-        this.draw();
-        // TODO could be improved considering actual interval between frames
-        const delay = Math.round(1000 / this.#opts.frameRate);
+        const ts = performance.now();
+        /*if (PROFILING) {
+            profileCb(this.draw, this);
+        } else {*/
+            this.draw();
+        /*}*/
+        const delay = Math.round(1000 / this.#opts.frameRate - (performance.now() - ts));
 
-        // TODO needs to use worker timer
         this.#updateTimer = wSetTimeout(() => this.#updateCanvas(), delay);
     }
 
     start() {
         if (this.#stopped) return;
+
+        /*if (PROFILING) {
+            profilingInit(PROFILING_BUFFER_SIZE);
+        }*/
 
         this.#updateCanvas();
     }

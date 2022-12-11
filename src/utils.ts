@@ -1,3 +1,5 @@
+import { avg, create, max, push } from './circularBuffer';
+
 export function omit(keys: string[], o: Record<string, unknown>): Record<string, unknown> {
     return Object.keys(o).reduce((a, key) => {
         if (!keys.includes(key)) a[key] = o[key];
@@ -41,4 +43,25 @@ export function makeImageCircled(image: CanvasImageSource, maxSize: number = 300
 
     // FF 105+, and unsupported in Safari
     return canvas.transferToImageBitmap();
+}
+
+
+export function profilingInit(bufferSize = 1000) {
+    (window as any)._rpProf = create<number>(bufferSize);
+    (window as any)._rpProfTs = create<number>(bufferSize);
+    (window as any)._rpProfPrev = performance.now();
+    (window as any)._rpProfReport = function() {
+        const processedAvg = avg((window as any)._rpProf);
+        const processedMax = max((window as any)._rpProf);
+        const delaysAvg = avg((window as any)._rpProfTs);
+        console.log({ processedAvg, processedMax, delaysAvg });
+    }
+}
+
+export function profileCb(cb: Function, context?: object, args?: unknown[]) {
+    const ts = performance.now();
+    cb.apply(context, args);
+    push((window as any)._rpProf, performance.now() - ts);
+    push((window as any)._rpProfTs, ts - (window as any)._rpProfPrev);
+    (window as any)._rpProfPrev = ts;
 }
