@@ -2,6 +2,7 @@ import TilesLayout, { TilesLayoutInterface } from './TilesLayout';
 import TilePainter, { PlaceholderType, TilePainterInterface, TileStyle } from './TilePainter';
 import { omit } from './utils';
 import AudioMixer, { AudioMixerInterface } from './AudioMixer';
+import { wSetTimeout } from './WorkerTimer';
 
 type RecordingTile = {
     title: string,
@@ -186,7 +187,7 @@ export default class RecordingProducer implements RecordingProducerInterface {
         const delay = Math.round(1000 / this.#opts.frameRate);
 
         // TODO needs to use worker timer
-        this.#updateTimer = window.setTimeout(() => this.#updateCanvas(), delay);
+        this.#updateTimer = wSetTimeout(() => this.#updateCanvas(), delay);
     }
 
     start() {
