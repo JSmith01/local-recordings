@@ -118,6 +118,9 @@ export default class RecordingProducer implements RecordingProducerInterface {
         if (stream) {
             this.addStream(id, stream);
         } else {
+            if (this.#streams.has(id)) {
+                this.#tiles.get(id)!.painter.setStream(this.#streams.get(id));
+            }
             this.#update();
         }
     }
@@ -138,7 +141,6 @@ export default class RecordingProducer implements RecordingProducerInterface {
             this.#orderedIds.splice(idx, 1);
         }
 
-        this.removeStream(id);
         this.#update();
     }
 
