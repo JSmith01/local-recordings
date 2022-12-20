@@ -14,3 +14,7 @@
 * Use OffscreenCanvas to draw combined image inside a worker and pass it back to the main thread
 * Write binary stream like https://github.com/w3c/webcodecs/tree/main/samples/capture-to-file (audio?)
 
+----
+Bug that would prevent current audio recording:
+https://bugs.chromium.org/p/chromium/issues/detail?id=933677#c26
+
