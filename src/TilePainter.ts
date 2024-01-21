@@ -79,13 +79,13 @@ export default class TilePainter implements TilePainterInterface {
         } else {
             // placeholder
             const size = Math.min(width / 2, height / 2);
-            const sourceSize = Math.min(w, h);
+            const [placeholderW, placeholderH] = getCanvasImageSourceSize(this.#placeholder);
+            const sourceSize = Math.min(placeholderW, placeholderH);
 
             // TODO reimplement, very glitchy
             // this.#ctx.save();
             // this.#ctx.arc(x + width / 2,y + height / 2, size / 2, 0, Math.PI*2,true);
             // this.#ctx.clip();
-            const [placeholderW, placeholderH] = getCanvasImageSourceSize(this.#placeholder);
             this.#ctx.drawImage(
                 this.#placeholder,
                 (placeholderW - sourceSize) / 2,

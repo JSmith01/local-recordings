@@ -55,7 +55,8 @@ btnCapture.onclick = () => {
     navigator.mediaDevices.getUserMedia({ video, audio: true }).then(stream => {
         videoStream = stream;
         videoPreview.srcObject = stream;
-        rp.addStream('a', stream);
+        const uid = uids[ptr === 0 ? uids.length - 1 : ptr - 1];
+        rp.addStream(uid, stream);
     });
 };
 
