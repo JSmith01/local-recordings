@@ -35,7 +35,7 @@ export function getGridParams(w: number, h: number, gap: number, tilesCount: num
         cols = Math.ceil(tilesCount / rows);
     }
 
-    const lastRowSize = tilesCount % optimal.rows || optimal.cols;
+    const lastRowSize = (tilesCount % optimal.cols) || optimal.cols;
 
     return {
         ...optimal,
