@@ -1,4 +1,5 @@
 import { TileParams } from './TilesLayout';
+import { getCanvasImageSourceSize, makeImageSource, StreamImageSource } from './utils';
 
 export interface TilePainterInterface {
     setStream(stream?: MediaStream): void;
@@ -20,7 +21,6 @@ const DEFAULT_STYLE = {
     borderStyle: '#000',
     highlightStyle: '#0af1f1',
     tileBg: '#808080',
-    parkingId: '',
 };
 
 export type TileStyle = typeof DEFAULT_STYLE;
@@ -32,9 +32,7 @@ export default class TilePainter implements TilePainterInterface {
     #style: TileStyle;
     #coords: TileParams = { x: 0, y: 0, width: 0, height: 0 };
     #highlight = false;
-    #stream?: MediaStream;
-    #playback?: HTMLVideoElement;
-    #ownPlayback = true;
+    #streamImageSource?: StreamImageSource;
 
     constructor(
         ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
@@ -64,9 +62,11 @@ export default class TilePainter implements TilePainterInterface {
         this.#ctx.fillRect(x, y, width, height);
 
         const tileAr = this.#coords.width / this.#coords.height;
-        if (this.#playback && this.#playback.videoWidth > 0 && this.#playback.videoHeight > 0) {
+        const frame= this.#streamImageSource?.frame.current;
+        const [w, h] = frame ? getCanvasImageSourceSize(frame) : [0, 0];
+        if (frame && w > 0 && h > 0) {
             // video frame
-            const videoAr = this.#playback.videoWidth / this.#playback.videoHeight;
+            const videoAr = w / h;
             let dstWidth = width;
             let dstHeight = height;
             if (videoAr >= tileAr) {
@@ -75,20 +75,21 @@ export default class TilePainter implements TilePainterInterface {
             } else {
                 dstWidth = height * videoAr;
             }
-            this.#ctx.drawImage(this.#playback, x + (width - dstWidth) / 2, y + (height - dstHeight) / 2, dstWidth, dstHeight);
+            this.#ctx.drawImage(frame, x + (width - dstWidth) / 2, y + (height - dstHeight) / 2, dstWidth, dstHeight);
         } else {
             // placeholder
             const size = Math.min(width / 2, height / 2);
-            const sourceSize = Math.min(this.#placeholder.width as number, this.#placeholder.height as number);
+            const sourceSize = Math.min(w, h);
 
             // TODO reimplement, very glitchy
             // this.#ctx.save();
             // this.#ctx.arc(x + width / 2,y + height / 2, size / 2, 0, Math.PI*2,true);
             // this.#ctx.clip();
+            const [placeholderW, placeholderH] = getCanvasImageSourceSize(this.#placeholder);
             this.#ctx.drawImage(
                 this.#placeholder,
-                ((this.#placeholder.width as number) - sourceSize) / 2,
-                ((this.#placeholder.height as number) - sourceSize) / 2,
+                (placeholderW - sourceSize) / 2,
+                (placeholderH - sourceSize) / 2,
                 sourceSize,
                 sourceSize,
                 x + (width - size) / 2,
@@ -123,34 +124,14 @@ export default class TilePainter implements TilePainterInterface {
     }
 
     setStream(stream?: MediaStream): void {
-        if (!stream) {
-            this.#stream = undefined;
-            if (this.#playback && this.#ownPlayback) {
-                this.#playback.pause();
-                this.#playback.srcObject = null;
-                if (this.#style.parkingId) {
-                    document.getElementById(this.#style.parkingId)?.removeChild(this.#playback);
-                }
-            }
-            this.#playback = undefined;
-            return;
+        if (this.#streamImageSource) {
+            this.#streamImageSource.stop();
+            this.#streamImageSource = null;
         }
 
-        this.#stream = stream;
-        const domPlayback = Array.from(document.querySelectorAll('video'))
-            .find(videoEl => videoEl.srcObject === stream);
-        if (domPlayback) {
-            this.#playback = domPlayback;
-            this.#ownPlayback = false;
-        } else {
-            this.#playback = document.createElement('video');
-            this.#playback.muted = true;
-            this.#playback.autoplay = true;
-            this.#playback.srcObject = stream;
-            this.#ownPlayback = true;
-            if (this.#style.parkingId) {
-                document.getElementById(this.#style.parkingId)?.appendChild(this.#playback);
-            }
-        }
+        if (!stream) return;
+
+        this.#streamImageSource = makeImageSource(stream);
+        this.#streamImageSource.start();
     }
 }
